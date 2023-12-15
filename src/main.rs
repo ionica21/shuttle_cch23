@@ -11,20 +11,21 @@ async fn negative_one_error() -> impl Responder {
     HttpResponse::InternalServerError()
 }
 
-#[get("/1/{first_number_string}/{second_number_string}")]
-async fn cube_the_bits(path: web::Path<(String, String)>) -> impl Responder {
-    let (first_number_string, second_number_string) = path.into_inner();
-
+async fn cube_the_bits(path: web::Path<String>) -> impl Responder {
     // Attempt to parse to i64
-    let first_number = first_number_string.parse::<i64>();
-    let second_number = second_number_string.parse::<i64>();
+    let numbers_result: Result<Vec<i64>, _> = path
+        .split("/")
+        .filter(|item| !item.is_empty())
+        .map(|item| item.parse::<i64>())
+        .collect();
 
-    // Throw if either parse failed
-    if first_number.is_err() || second_number.is_err() {
+
+    // Throw if parse failed
+    if numbers_result.is_err() {
         return HttpResponse::BadRequest().body("Invalid path parameters provided!");
     }
 
-    let xor_result = first_number.unwrap() ^ second_number.unwrap();
+    let xor_result = numbers_result.unwrap().iter().fold(0, |acc, x| acc ^ x);
     match xor_result.checked_pow(3) {
         Some(value) => HttpResponse::Ok().body(value.to_string()),
         None => HttpResponse::BadRequest().body("Integer overflow!"),
@@ -36,7 +37,7 @@ async fn main() -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send + Clon
     let config = move |cfg: &mut ServiceConfig| {
         cfg.service(hello_world)
             .service(negative_one_error)
-            .service(cube_the_bits);
+            .route("/1/{tail:.*}", web::get().to(cube_the_bits));
     };
 
     Ok(config.into())
