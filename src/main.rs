@@ -1,6 +1,6 @@
 mod tasks;
 
-use actix_web::{web, web::ServiceConfig, Responder};
+use actix_web::{web, web::ServiceConfig};
 use shuttle_actix_web::ShuttleActixWeb;
 
 #[shuttle_runtime::main]
