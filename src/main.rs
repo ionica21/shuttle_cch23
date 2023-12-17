@@ -10,7 +10,8 @@ async fn main() -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send + Clon
             .service(tasks::negative_one::negative_one_error)
             .route("/1/{tail:.*}", web::get().to(tasks::one::cube_the_bits))
             .service(tasks::four::reindeer_strength)
-            .service(tasks::four::reindeer_contest);
+            .service(tasks::four::reindeer_contest)
+            .service(tasks::six::count_elf);
     };
 
     Ok(config.into())
