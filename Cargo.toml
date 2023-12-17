@@ -4,9 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-actix-web = "4.3.1"
+actix-web = { version = "4.3.1", features = ["cookies"] }
 shuttle-actix-web = "0.35.0"
 shuttle-runtime = "0.35.0"
 tokio = "1.26.0"
 serde = "1.0.193"
 serde_json = { version = "1.0.108", features = [] }
+base64 = "0.21.5"
