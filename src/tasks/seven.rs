@@ -7,14 +7,14 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 struct BakeData {
-    recipe: HashMap<String, u32>,
-    pantry: HashMap<String, u32>,
+    recipe: HashMap<String, u64>,
+    pantry: HashMap<String, u64>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 struct BakeResponse {
-    cookies: u32,
-    pantry: HashMap<String, u32>,
+    cookies: u64,
+    pantry: HashMap<String, u64>,
 }
 
 fn decode_cookies_as_string(req: &HttpRequest) -> Result<String, FromUtf8Error> {
@@ -36,6 +36,10 @@ async fn decode_recipe(req: HttpRequest) -> impl Responder {
 fn can_bake_cookie(bake_data: &BakeData) -> bool {
     let mut can_bake = true;
     for (ingredient, recipe_amount) in bake_data.recipe.iter() {
+        // Skip zero amounts
+        if *recipe_amount == 0 {
+            continue;
+        }
         if let Some(pantry_amount) = bake_data.pantry.get(ingredient) {
             if pantry_amount < recipe_amount {
                 can_bake = false;
@@ -51,6 +55,10 @@ fn can_bake_cookie(bake_data: &BakeData) -> bool {
 
 fn bake_cookie(bake_data: &mut BakeData) {
     for (ingredient, recipe_amount) in bake_data.recipe.iter() {
+        // Skip zero amounts
+        if *recipe_amount == 0 {
+            continue;
+        }
         bake_data.pantry.insert(
             ingredient.to_string(),
             bake_data.pantry.get(ingredient).unwrap() - recipe_amount,
