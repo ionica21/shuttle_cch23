@@ -9,3 +9,4 @@ shuttle-actix-web = "0.35.0"
 shuttle-runtime = "0.35.0"
 tokio = "1.26.0"
 serde = "1.0.193"
+serde_json = { version = "1.0.108", features = [] }
