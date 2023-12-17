@@ -14,7 +14,7 @@ fn clean_text(input: &str) -> String {
     input
         .chars()
         .filter(|c| c.is_alphanumeric() || c.is_ascii_punctuation() || *c == ' ')
-        .collect()
+        .collect::<String>()
 }
 
 #[post("/6")]
@@ -23,9 +23,15 @@ pub async fn count_elf(body: String) -> impl Responder {
     let elf_count = cleaned_body.matches("elf").count();
     let elf_on_a_shelf_count = cleaned_body.matches("elf on a shelf").count();
 
-    // Figure out the number of "shelf" occurrences that aren't preceded by "elf on a"
-    let shelf_count = cleaned_body.matches("shelf").count();
-    let shelf_with_no_elf_count = shelf_count - elf_on_a_shelf_count;
+    // Counting "shelf" occurrences that are not preceded by "elf on a ".
+    let mut shelf_with_no_elf_count = cleaned_body
+        .split("shelf")
+        .filter(|part| !part.ends_with("elf on a "))
+        .count()
+        - 1;
+    if shelf_with_no_elf_count < 0 {
+        shelf_with_no_elf_count = 0;
+    }
 
     HttpResponse::Ok().json(ElfCounts {
         elf: elf_count as i32,
