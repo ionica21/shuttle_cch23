@@ -21,8 +21,6 @@ fn clean_text(input: &str) -> String {
 fn count_overlapping_matches(text: &str, pattern: &str) -> (usize, Vec<usize>) {
     let mut count = 0;
     let mut start = 0;
-
-    // Save where the matches were found so that we can check for a shelf with no elf
     let mut match_indices: Vec<usize> = vec![];
 
     while let Some(match_index) = text[start..].find(pattern) {
@@ -38,13 +36,13 @@ fn count_overlapping_matches(text: &str, pattern: &str) -> (usize, Vec<usize>) {
 pub async fn count_elf(body: String) -> impl Responder {
     let cleaned_body = clean_text(&body);
     let (elf_count, _) = count_overlapping_matches(&cleaned_body, "elf");
-    let (elf_on_a_shelf_count, elf_on_a_shelf_indices) =
-        count_overlapping_matches(&cleaned_body, "elf on a shelf");
+    let (elf_on_a_shelf_count, _) = count_overlapping_matches(&cleaned_body, "elf on a shelf");
 
-    // Counting "shelf" occurrences that are not preceded by "elf on a ".
-    let shelf_with_no_elf_count = elf_on_a_shelf_indices
+    // Counting "shelf" occurrences that are not preceded by "elf on a ".'
+    let (_, shelf_indices) = count_overlapping_matches(&cleaned_body, "shelf");
+    let shelf_with_no_elf_count = shelf_indices
         .into_iter()
-        .filter(|index| cleaned_body[..*index].ends_with("elf on a "))
+        .filter(|index| !cleaned_body[..*index].ends_with("elf on a "))
         .count();
 
     HttpResponse::Ok().json(ElfCounts {
@@ -100,7 +98,7 @@ mod tests {
             .uri("/6")
             .set_payload(
                 "there is an elf on a shelf on an elf.
-      there is also another shelf in Belfast.",
+                 there is also another shelf in Belfast.",
             )
             .to_request();
         let res = test::call_service(&app, req).await;
@@ -109,11 +107,6 @@ mod tests {
         let res_body_bytes = test::read_body(res).await;
         let res_body = String::from_utf8(res_body_bytes.to_vec())
             .expect("Failed to convert response to string");
-
-        assert_eq!(
-            res_body,
-            "{\"elf\":5,\"elf on a shelf\":1,\"shelf with no elf on it\":1}"
-        );
 
         let elf_counts: ElfCounts =
             serde_json::from_str(&res_body).expect("Failed to deserialize response");
