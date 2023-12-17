@@ -1,41 +1,20 @@
 use actix_web::{get, HttpRequest, HttpResponse, Responder};
+use std::collections::HashMap;
 use std::string::FromUtf8Error;
 
 use base64::{engine::general_purpose, Engine as _};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Recipe {
-    flour: u32,
-    sugar: u32,
-    butter: u32,
-    #[serde(rename = "baking powder")]
-    baking_powder: u32,
-    #[serde(rename = "chocolate chips")]
-    chocolate_chips: u32,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Pantry {
-    flour: u32,
-    sugar: u32,
-    butter: u32,
-    #[serde(rename = "baking powder")]
-    baking_powder: u32,
-    #[serde(rename = "chocolate chips")]
-    chocolate_chips: u32,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
 struct BakeData {
-    recipe: Recipe,
-    pantry: Pantry,
+    recipe: HashMap<String, u32>,
+    pantry: HashMap<String, u32>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 struct BakeResponse {
     cookies: u32,
-    pantry: Pantry,
+    pantry: HashMap<String, u32>,
 }
 
 fn decode_cookies_as_string(req: &HttpRequest) -> Result<String, FromUtf8Error> {
@@ -55,31 +34,28 @@ async fn decode_recipe(req: HttpRequest) -> impl Responder {
 }
 
 fn can_bake_cookie(bake_data: &BakeData) -> bool {
-    if bake_data.pantry.flour < bake_data.recipe.flour {
-        return false;
+    let mut can_bake = true;
+    for (ingredient, recipe_amount) in bake_data.recipe.iter() {
+        if let Some(pantry_amount) = bake_data.pantry.get(ingredient) {
+            if pantry_amount < recipe_amount {
+                can_bake = false;
+                break;
+            }
+        } else {
+            can_bake = false;
+            break;
+        }
     }
-    if bake_data.pantry.sugar < bake_data.recipe.sugar {
-        return false;
-    }
-    if bake_data.pantry.butter < bake_data.recipe.butter {
-        return false;
-    }
-    if bake_data.pantry.baking_powder < bake_data.recipe.baking_powder {
-        return false;
-    }
-    if bake_data.pantry.chocolate_chips < bake_data.recipe.chocolate_chips {
-        return false;
-    }
-    return true;
+    return can_bake;
 }
 
-fn bake_cookie(bake_data: &mut BakeData) -> bool {
-    bake_data.pantry.flour -= bake_data.recipe.flour;
-    bake_data.pantry.sugar -= bake_data.recipe.sugar;
-    bake_data.pantry.butter -= bake_data.recipe.butter;
-    bake_data.pantry.baking_powder -= bake_data.recipe.baking_powder;
-    bake_data.pantry.chocolate_chips -= bake_data.recipe.chocolate_chips;
-    true
+fn bake_cookie(bake_data: &mut BakeData) {
+    for (ingredient, recipe_amount) in bake_data.recipe.iter() {
+        bake_data.pantry.insert(
+            ingredient.to_string(),
+            bake_data.pantry.get(ingredient).unwrap() - recipe_amount,
+        );
+    }
 }
 
 #[get("/7/bake")]
@@ -88,11 +64,8 @@ async fn bake_recipe(req: HttpRequest) -> impl Responder {
         if let Ok(mut bake_data) = serde_json::from_str::<BakeData>(bake_data_string.as_str()) {
             let mut cookies_baked = 0;
             while can_bake_cookie(&bake_data) {
-                if bake_cookie(&mut bake_data) {
-                    cookies_baked += 1;
-                } else {
-                    break;
-                }
+                bake_cookie(&mut bake_data);
+                cookies_baked += 1;
             }
             HttpResponse::Ok().json(BakeResponse {
                 cookies: cookies_baked,
@@ -110,6 +83,7 @@ async fn bake_recipe(req: HttpRequest) -> impl Responder {
 mod test {
     use actix_web::cookie::Cookie;
     use actix_web::{test, App};
+    use serde_json::{json, Value};
 
     use super::*;
 
@@ -150,6 +124,47 @@ mod test {
         let res_body_bytes = test::read_body(res).await;
         let res_body = String::from_utf8(res_body_bytes.to_vec())
             .expect("Failed to convert response to string");
-        assert_eq!(res_body, "{\"cookies\":4,\"pantry\":{\"flour\":5,\"sugar\":307,\"butter\":2002,\"baking powder\":825,\"chocolate chips\":257}}");
+        assert_eq!(
+            serde_json::from_str::<Value>(&res_body).unwrap(),
+            json!({
+              "cookies": 4,
+              "pantry": {
+                "flour": 5,
+                "sugar": 307,
+                "butter": 2002,
+                "baking powder": 825,
+                "chocolate chips": 257
+              }
+            })
+        );
+    }
+
+    #[actix_web::test]
+    async fn test_bake_questionable() {
+        let app = test::init_service(App::new().service(bake_recipe)).await;
+
+        let req = test::TestRequest::get()
+            .cookie(Cookie::new(
+                "recipe",
+                "eyJyZWNpcGUiOnsic2xpbWUiOjl9LCJwYW50cnkiOnsiY29iYmxlc3RvbmUiOjY0LCJzdGljayI6IDR9fQ==",
+            ))
+            .uri("/7/bake")
+            .to_request();
+        let res = test::call_service(&app, req).await;
+        assert!(res.status().is_success());
+
+        let res_body_bytes = test::read_body(res).await;
+        let res_body = String::from_utf8(res_body_bytes.to_vec())
+            .expect("Failed to convert response to string");
+        assert_eq!(
+            serde_json::from_str::<Value>(&res_body).unwrap(),
+            json!({
+              "cookies": 0,
+              "pantry": {
+                "cobblestone": 64,
+                "stick": 4
+              }
+            })
+        );
     }
 }
