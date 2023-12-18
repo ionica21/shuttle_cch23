@@ -1,3 +1,4 @@
+pub(crate) mod eight;
 pub(crate) mod four;
 pub(crate) mod negative_one;
 pub(crate) mod one;
