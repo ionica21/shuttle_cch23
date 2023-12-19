@@ -19,7 +19,8 @@ async fn main() -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send + Clon
             .service(tasks::eleven::assets)
             .service(tasks::eleven::count_red_pixels)
             .service(tasks::twelve::save_string)
-            .service(tasks::twelve::load_string);
+            .service(tasks::twelve::load_string)
+            .service(tasks::twelve::convert_ulids_to_uuids);
     };
 
     Ok(config.into())
