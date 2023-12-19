@@ -24,3 +24,4 @@ lazy_static = "1.4.0"
 uuid = { version = "1.6.1", features = ["v4"] }
 ulid = "1.1.0"
 chrono = "0.4.31"
+askama = "0.12.1"
