@@ -42,7 +42,8 @@ async fn main(
             .service(tasks::thirteen::total_orders)
             .service(tasks::thirteen::most_popular_gift)
             .service(tasks::fourteen::unsafe_endpoint)
-            .service(tasks::fourteen::safe_endpoint);
+            .service(tasks::fourteen::safe_endpoint)
+            .service(tasks::fifteen::validate_password);
     };
 
     Ok(config.into())
