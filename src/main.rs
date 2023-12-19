@@ -17,7 +17,9 @@ async fn main() -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send + Clon
             .service(tasks::eight::pokemon_weight)
             .service(tasks::eight::pokemon_drop)
             .service(tasks::eleven::assets)
-            .service(tasks::eleven::count_red_pixels);
+            .service(tasks::eleven::count_red_pixels)
+            .service(tasks::twelve::save_string)
+            .service(tasks::twelve::load_string);
     };
 
     Ok(config.into())
