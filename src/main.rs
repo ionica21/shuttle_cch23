@@ -36,7 +36,11 @@ async fn main(
             .service(tasks::twelve::load_string)
             .service(tasks::twelve::convert_ulids_to_uuids)
             .service(tasks::twelve::analyze_ulids)
-            .service(tasks::thirteen::sql);
+            .service(tasks::thirteen::sql)
+            .service(tasks::thirteen::reset)
+            .service(tasks::thirteen::add_orders)
+            .service(tasks::thirteen::total_orders)
+            .service(tasks::thirteen::most_popular_gift);
     };
 
     Ok(config.into())

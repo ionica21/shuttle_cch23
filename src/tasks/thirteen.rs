@@ -89,10 +89,26 @@ async fn total_orders(state: web::Data<AppState>) -> impl Responder {
     }
 }
 
+#[get("/13/orders/popular")]
+async fn most_popular_gift(state: web::Data<AppState>) -> impl Responder {
+    if let Ok(Some(row)) = sqlx::query(
+        "SELECT gift_name FROM orders GROUP BY gift_name ORDER BY SUM(quantity) DESC LIMIT 1;",
+    )
+    .fetch_optional(&state.pool)
+    .await
+    {
+        let gift_name = row.get::<String, _>(0);
+        HttpResponse::Ok().json(json!({"popular": gift_name}))
+    } else {
+        HttpResponse::Ok().json(json!({"popular": None::<()>}))
+    }
+}
+
 #[cfg(test)]
 mod test {
     use actix_web::{test, App};
     use serde_json::json;
+    use serial_test::serial;
     use sqlx::postgres::PgPoolOptions;
     use tokio::fs;
     use toml::Table;
@@ -132,6 +148,7 @@ mod test {
     }
 
     #[actix_web::test]
+    #[serial]
     async fn test_orders_process() {
         let state = set_up_sql().await;
         let app = test::init_service(
@@ -173,5 +190,47 @@ mod test {
 
         let body = test::read_body(res).await;
         assert_eq!(body, "{\"total\":44}");
+    }
+
+    #[actix_web::test]
+    #[serial]
+    async fn test_most_popular() {
+        let state = set_up_sql().await;
+        let app = test::init_service(
+            App::new()
+                .app_data(state)
+                .service(reset)
+                .service(add_orders)
+                .service(most_popular_gift),
+        )
+        .await;
+
+        // Reset state
+        let req = test::TestRequest::post().uri("/13/reset").to_request();
+        let res = test::call_service(&app, req).await;
+        assert!(res.status().is_success());
+
+        // Post orders
+        let orders_data = json!([
+            {"id":1,"region_id":2,"gift_name":"Toy Train","quantity":5},
+            {"id":2,"region_id":2,"gift_name":"Doll","quantity":8},
+            {"id":3,"region_id":3,"gift_name":"Toy Train","quantity":4}
+        ]);
+        let req = test::TestRequest::post()
+            .uri("/13/orders")
+            .set_json(&orders_data)
+            .to_request();
+        let res = test::call_service(&app, req).await;
+        assert!(res.status().is_success());
+
+        // Get most popular gift
+        let req = test::TestRequest::get()
+            .uri("/13/orders/popular")
+            .to_request();
+        let res = test::call_service(&app, req).await;
+        assert!(res.status().is_success());
+
+        let body = test::read_body(res).await;
+        assert_eq!(body, json!({"popular": "Toy Train"}).to_string());
     }
 }
