@@ -1,5 +1,7 @@
 use actix_web::{get, post, web, HttpResponse, Responder};
+use chrono::{Datelike, NaiveDateTime, TimeZone, Utc, Weekday};
 use lazy_static::lazy_static;
+use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::time::Instant;
@@ -55,6 +57,52 @@ async fn convert_ulids_to_uuids(ulids: web::Json<Vec<String>>) -> impl Responder
 
     uuids.reverse();
     HttpResponse::Ok().json(uuids)
+}
+
+#[post("/12/ulids/{weekday}")]
+async fn analyze_ulids(weekday: web::Path<u8>, ulids: web::Json<Vec<String>>) -> impl Responder {
+    let mut christmas_eve_count = 0;
+    let mut specified_weekday_count = 0;
+    let mut future_count = 0;
+    let mut lsb_one_count = 0;
+
+    for ulid_str in ulids.into_inner() {
+        if let Ok(ulid) = Ulid::from_string(&ulid_str) {
+            let timestamp = ulid.timestamp_ms();
+            if let Some(datetime) = NaiveDateTime::from_timestamp_opt((timestamp / 1000) as i64, 0)
+            {
+                let date = Utc.from_utc_datetime(&datetime);
+
+                // Check for christmas eve
+                if date.month() == 12 && date.day() == 24 {
+                    christmas_eve_count += 1;
+                }
+
+                // Check for specified weekday
+                if date.weekday() == Weekday::try_from(*weekday).unwrap() {
+                    specified_weekday_count += 1;
+                }
+
+                // Check for future date
+                if Utc::now() < date {
+                    future_count += 1;
+                }
+
+                // Check if LSB of entropy is 1
+                let entropy = &ulid.to_bytes()[6..];
+                if entropy[entropy.len() - 1] & 1 == 1 {
+                    lsb_one_count += 1;
+                }
+            }
+        }
+    }
+
+    HttpResponse::Ok().json(json!({
+        "christmas eve": christmas_eve_count,
+        "weekday": specified_weekday_count,
+        "in the future": future_count,
+        "LSB is 1": lsb_one_count
+    }))
 }
 
 #[cfg(test)]
@@ -145,5 +193,43 @@ mod test {
         ];
 
         assert_eq!(returned_ulids, expected_uuids);
+    }
+
+    #[actix_web::test]
+    async fn test_analyze_ulids() {
+        let app = test::init_service(App::new().service(analyze_ulids)).await;
+
+        let ulids = json!([
+            "00WEGGF0G0J5HEYXS3D7RWZGV8",
+            "76EP4G39R8JD1N8AQNYDVJBRCF",
+            "018CJ7KMG0051CDCS3B7BFJ3AK",
+            "00Y986KPG0AMGB78RD45E9109K",
+            "010451HTG0NYWMPWCEXG6AJ8F2",
+            "01HH9SJEG0KY16H81S3N1BMXM4",
+            "01HH9SJEG0P9M22Z9VGHH9C8CX",
+            "017F8YY0G0NQA16HHC2QT5JD6X",
+            "03QCPC7P003V1NND3B3QJW72QJ"
+        ]);
+
+        let req = test::TestRequest::post()
+            .uri("/12/ulids/5")
+            .insert_header((header::CONTENT_TYPE, "application/json"))
+            .set_payload(ulids.to_string())
+            .to_request();
+
+        let res = test::call_service(&app, req).await;
+        assert!(res.status().is_success());
+
+        let body = test::read_body(res).await;
+        let result: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        let expected_result = json!({
+            "christmas eve": 3,
+            "weekday": 1,
+            "in the future": 2,
+            "LSB is 1": 5
+        });
+
+        assert_eq!(result, expected_result);
     }
 }

@@ -19,3 +19,4 @@ rustemon = "3.2.1"
 lazy_static = "1.4.0"
 uuid = { version = "1.6.1", features = ["v4"] }
 ulid = "1.1.0"
+chrono = "0.4.31"
