@@ -40,7 +40,9 @@ async fn main(
             .service(tasks::thirteen::reset)
             .service(tasks::thirteen::add_orders)
             .service(tasks::thirteen::total_orders)
-            .service(tasks::thirteen::most_popular_gift);
+            .service(tasks::thirteen::most_popular_gift)
+            .service(tasks::fourteen::unsafe_endpoint)
+            .service(tasks::fourteen::safe_endpoint);
     };
 
     Ok(config.into())
