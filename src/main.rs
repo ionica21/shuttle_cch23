@@ -48,7 +48,8 @@ async fn main(
             .service(tasks::eighteen::reset_advanced)
             .route("/18/orders", web::post().to(tasks::thirteen::add_orders))
             .service(tasks::eighteen::add_regions)
-            .service(tasks::eighteen::total_regions);
+            .service(tasks::eighteen::total_regions)
+            .service(tasks::eighteen::top_list);
     };
 
     Ok(config.into())
