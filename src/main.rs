@@ -1,13 +1,19 @@
 mod tasks;
 
+use crate::tasks::nineteen::Room;
+use actix::Addr;
 use actix_web::{web, web::ServiceConfig};
 use shuttle_actix_web::ShuttleActixWeb;
 use shuttle_shared_db;
 use sqlx::PgPool;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex as SyncMutex};
+use tokio::sync::Mutex;
 
-#[derive(Clone)]
 pub struct AppState {
     pool: PgPool,
+    rooms: Mutex<HashMap<i32, Addr<Room>>>,
+    view_count: Arc<SyncMutex<usize>>,
 }
 
 #[shuttle_runtime::main]
@@ -17,7 +23,11 @@ async fn main(
     )]
     pool: PgPool,
 ) -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send + Clone + 'static> {
-    let state = web::Data::new(AppState { pool });
+    let state = web::Data::new(AppState {
+        pool,
+        rooms: Mutex::new(HashMap::new()),
+        view_count: Arc::new(SyncMutex::new(0_usize)),
+    });
     let config = move |cfg: &mut ServiceConfig| {
         cfg.app_data(state)
             .service(tasks::negative_one::hello_world)
@@ -50,7 +60,10 @@ async fn main(
             .service(tasks::eighteen::add_regions)
             .service(tasks::eighteen::total_regions)
             .service(tasks::eighteen::top_list)
-            .service(tasks::nineteen::ping_pong);
+            .service(tasks::nineteen::ping_pong)
+            .service(tasks::nineteen::room)
+            .service(tasks::nineteen::get_views)
+            .service(tasks::nineteen::reset_views);
     };
 
     Ok(config.into())
