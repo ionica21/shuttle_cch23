@@ -6,7 +6,7 @@ use shuttle_shared_db;
 use sqlx::PgPool;
 
 #[derive(Clone)]
-struct AppState {
+pub struct AppState {
     pool: PgPool,
 }
 
@@ -38,13 +38,17 @@ async fn main(
             .service(tasks::twelve::analyze_ulids)
             .service(tasks::thirteen::sql)
             .service(tasks::thirteen::reset)
-            .service(tasks::thirteen::add_orders)
+            .route("/13/orders", web::post().to(tasks::thirteen::add_orders))
             .service(tasks::thirteen::total_orders)
             .service(tasks::thirteen::most_popular_gift)
             .service(tasks::fourteen::unsafe_endpoint)
             .service(tasks::fourteen::safe_endpoint)
             .service(tasks::fifteen::validate_password)
-            .service(tasks::fifteen::game);
+            .service(tasks::fifteen::game)
+            .service(tasks::eighteen::reset_advanced)
+            .route("/18/orders", web::post().to(tasks::thirteen::add_orders))
+            .service(tasks::eighteen::add_regions)
+            .service(tasks::eighteen::total_regions);
     };
 
     Ok(config.into())

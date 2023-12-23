@@ -37,15 +37,14 @@ async fn reset(state: web::Data<AppState>) -> impl Responder {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Order {
+pub struct Order {
     id: i64,
     region_id: i64,
     gift_name: String,
     quantity: i64,
 }
 
-#[post("13/orders")]
-async fn add_orders(
+pub async fn add_orders(
     state: web::Data<AppState>,
     orders: web::Json<Vec<Order>>,
 ) -> Result<HttpResponse, Error> {
@@ -155,7 +154,7 @@ mod test {
             App::new()
                 .app_data(state)
                 .service(reset)
-                .service(add_orders)
+                .route("/13/orders", web::post().to(add_orders))
                 .service(total_orders),
         )
         .await;
@@ -200,7 +199,7 @@ mod test {
             App::new()
                 .app_data(state)
                 .service(reset)
-                .service(add_orders)
+                .route("/13/orders", web::post().to(add_orders))
                 .service(most_popular_gift),
         )
         .await;
