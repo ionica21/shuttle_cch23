@@ -49,7 +49,8 @@ async fn main(
             .route("/18/orders", web::post().to(tasks::thirteen::add_orders))
             .service(tasks::eighteen::add_regions)
             .service(tasks::eighteen::total_regions)
-            .service(tasks::eighteen::top_list);
+            .service(tasks::eighteen::top_list)
+            .service(tasks::nineteen::ping_pong);
     };
 
     Ok(config.into())
