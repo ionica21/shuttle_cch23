@@ -66,7 +66,8 @@ async fn main(
             .service(tasks::nineteen::reset_views)
             .service(tasks::twenty::archive_files)
             .service(tasks::twenty::archive_files_size)
-            .service(tasks::twenty::find_cookie);
+            .service(tasks::twenty::find_cookie)
+            .service(tasks::twenty_one::get_coords);
     };
 
     Ok(config.into())
