@@ -29,3 +29,4 @@ chrono = "0.4.31"
 askama = "0.12.1"
 regex = "1.10.2"
 sha2 = "0.10.8"
+tar = { version = "0.4.40", features = [] }

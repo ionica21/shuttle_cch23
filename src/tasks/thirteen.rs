@@ -109,7 +109,11 @@ mod test {
     use serde_json::json;
     use serial_test::serial;
     use sqlx::postgres::PgPoolOptions;
+    use std::collections::HashMap;
+    use std::sync::Arc;
+    use std::sync::Mutex as SyncMutex;
     use tokio::fs;
+    use tokio::sync::Mutex;
     use toml::Table;
 
     use super::*;
@@ -130,7 +134,11 @@ mod test {
             password, port
         );
         let pool = PgPoolOptions::new().connect(&database_url).await.unwrap();
-        web::Data::new(AppState { pool })
+        web::Data::new(AppState {
+            pool,
+            rooms: Mutex::new(HashMap::new()),
+            view_count: Arc::new(SyncMutex::new(0_usize)),
+        })
     }
 
     #[actix_web::test]

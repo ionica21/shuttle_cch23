@@ -63,7 +63,9 @@ async fn main(
             .service(tasks::nineteen::ping_pong)
             .service(tasks::nineteen::room)
             .service(tasks::nineteen::get_views)
-            .service(tasks::nineteen::reset_views);
+            .service(tasks::nineteen::reset_views)
+            .service(tasks::twenty::archive_files)
+            .service(tasks::twenty::archive_files_size);
     };
 
     Ok(config.into())
