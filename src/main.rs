@@ -71,7 +71,8 @@ async fn main(
             .service(tasks::twenty::find_cookie)
             .service(tasks::twenty_one::get_coords)
             .service(tasks::twenty_one::get_country)
-            .service(tasks::twenty_two::find_unpaired_integer);
+            .service(tasks::twenty_two::find_unpaired_integer)
+            .service(tasks::twenty_two::find_path_and_distance);
     };
 
     Ok(config.into())
