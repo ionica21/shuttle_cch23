@@ -35,6 +35,7 @@ async fn main(
             .route("/1/{tail:.*}", web::get().to(tasks::one::cube_the_bits))
             .service(tasks::four::reindeer_strength)
             .service(tasks::four::reindeer_contest)
+            .service(tasks::five::slice_names)
             .service(tasks::six::count_elf)
             .service(tasks::seven::decode_recipe)
             .service(tasks::seven::bake_recipe)
