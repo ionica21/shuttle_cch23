@@ -30,6 +30,7 @@ async fn main(
     });
     let config = move |cfg: &mut ServiceConfig| {
         cfg.app_data(state)
+            .app_data(web::PayloadConfig::new(1024 * 1024)) // 1MB
             .service(tasks::negative_one::hello_world)
             .service(tasks::negative_one::negative_one_error)
             .route("/1/{tail:.*}", web::get().to(tasks::one::cube_the_bits))
@@ -69,7 +70,8 @@ async fn main(
             .service(tasks::twenty::archive_files_size)
             .service(tasks::twenty::find_cookie)
             .service(tasks::twenty_one::get_coords)
-            .service(tasks::twenty_one::get_country);
+            .service(tasks::twenty_one::get_country)
+            .service(tasks::twenty_two::find_unpaired_integer);
     };
 
     Ok(config.into())
